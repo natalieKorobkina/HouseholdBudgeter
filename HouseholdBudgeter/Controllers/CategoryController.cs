@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using HouseholdBudgeter.Models;
 using HouseholdBudgeter.Models.BindingModels;
 using HouseholdBudgeter.Models.Domain;
+using HouseholdBudgeter.Models.Helpers;
 using HouseholdBudgeter.Models.ViewModels;
 using Microsoft.AspNet.Identity;
 using System;
@@ -18,26 +20,28 @@ namespace HouseholdBudgeter.Controllers
     public class CategoryController : ApiController
     {
         private ApplicationDbContext DbContext;
+        private HBHelper hBHelper;
+
 
         public CategoryController()
         {
             DbContext = new ApplicationDbContext();
+            hBHelper = new HBHelper(DbContext);
         }
 
         public IHttpActionResult PostCategory(CategoryBindingModel bindingModel)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
-            var userId = User.Identity.GetUserId();
-            var owner = DbContext.Households.FirstOrDefault(h => h.Id == bindingModel.CategoryHouseholdId && h.OwnerId == userId);
 
-            if (owner == null)
+            var household = hBHelper.GetHouseholdById(bindingModel.CategoryHouseholdId);
+            if (household == null)
+                return NotFound();
+
+            if (!hBHelper.CheckIfOwner(household.OwnerId))
                 return BadRequest("Just owners can create categories");
 
             var category = Mapper.Map<Category>(bindingModel);
-
             category.Created = DateTime.Now;
 
             DbContext.Categories.Add(category);
@@ -52,45 +56,39 @@ namespace HouseholdBudgeter.Controllers
         public IHttpActionResult PutCategory(CategoryBindingModel bindingModel)
         {
             if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var existingHousehold = DbContext.Households.FirstOrDefault(h => h.Id == bindingModel.CategoryHouseholdId);
-            if (existingHousehold == null) 
                 return BadRequest(ModelState);
 
-            var existingCategory= DbContext.Categories.FirstOrDefault(c => c.Id == bindingModel.Id);
-            if (existingCategory == null)
+            var household = hBHelper.GetHouseholdById(bindingModel.CategoryHouseholdId);
+            if (household == null)
+                return NotFound();
+
+            if (!hBHelper.CheckIfOwner(household.OwnerId))
+                return BadRequest("Just owners can edit categories");
+
+            var category= hBHelper.GetCategoryById(bindingModel.Id);
+            if (category == null)
                 return BadRequest(ModelState);
 
-            var userId = User.Identity.GetUserId();
-            if (userId != existingHousehold.OwnerId)
-                return BadRequest();
-
-            Mapper.Map(bindingModel, existingCategory);
-            existingCategory.Updated = DateTime.Now;
+            Mapper.Map(bindingModel, category);
+            category.Updated = DateTime.Now;
             DbContext.SaveChanges();
             
-            var categoryModel = Mapper.Map<CategoryViewModel>(existingCategory);
+            var categoryModel = Mapper.Map<CategoryViewModel>(category);
 
             return Ok(categoryModel);
         }
 
-        public IHttpActionResult Deletecategory(int categoryId)
+        public IHttpActionResult DeleteCategory(int categoryId)
         {
-            var category = DbContext.Categories.FirstOrDefault(p => p.Id == categoryId);
-
+            var category = hBHelper.GetCategoryById(categoryId);
             if (category == null)
                 return NotFound();
 
-            var household = DbContext.Households.FirstOrDefault(h => h.Id == category.CategoryHouseholdId);
+            var household = hBHelper.GetHouseholdById(category.CategoryHouseholdId);
             if (household == null)
                 return NotFound();
 
-            var currentUserId = User.Identity.GetUserId();
-            var isOwner = household.OwnerId == currentUserId;
-            if (!isOwner)
+            if (!hBHelper.CheckIfOwner(household.OwnerId))
                 return BadRequest("Just owners can delete categories in their households");
 
             DbContext.Categories.Remove(category);
@@ -101,35 +99,20 @@ namespace HouseholdBudgeter.Controllers
 
         public IHttpActionResult GetCategories(int householdId)
         {
-            var household = DbContext.Households.FirstOrDefault(h => h.Id == householdId);
-
+            var household = hBHelper.GetHouseholdById(householdId);
             if (household == null)
-            {
                 return NotFound();
-            }
 
-            var currentUserId = User.Identity.GetUserId();
-            var isParticipant = household.Participants.Any(p =>p.Id == currentUserId) || (household.OwnerId == currentUserId);
-            if (!isParticipant)
+            if (!hBHelper.currentIsParticipant(household))
                 return BadRequest("Just participants can see categories of the household");
 
             var categories = DbContext.Categories.Where(c => c.CategoryHouseholdId == household.Id)
-                .Select(c => new CategoryViewModel()
-            {
-                Id = c.Id,
-                Name = c.Name,
-                Description = c.Description,
-                CategoryHouseholdId = c.CategoryHouseholdId
-
-            }).ToList();
+                .ProjectTo<CategoryViewModel>().ToList();
 
             if (categories.Count() == 0)
-            {
                 return NotFound();
-            }
 
             return Ok(categories);
         }
-
     }
 }

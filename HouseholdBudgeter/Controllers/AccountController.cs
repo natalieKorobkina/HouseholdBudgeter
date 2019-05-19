@@ -222,22 +222,25 @@ namespace HouseholdBudgeter.Controllers
 
         // POST: api/Account/ForgotPassword
         [AllowAnonymous]
-        public async Task<IHttpActionResult> PostForgotPassword(string email)
+        [Route("ForgotPassword")]
+        public async Task<IHttpActionResult> ForgotPassword(ForgotPasswordViewModel model)
         {
-                var user = await UserManager.FindByNameAsync(email);
-                var code = await UserManager.GeneratePasswordResetTokenAsync(user.Id);
+            if (ModelState.IsValid)
+            {
+                var user = await UserManager.FindByNameAsync(model.Email);
+
+                if (user == null)
+                    return Ok();
 
                 // Send an email with this link
-                var callbackUrl = $"api/Account/ResetPassword";
-            //var callbackUrl = $"/Account/ResetPassword?userId={user.Id}&code={code}";
-            //var path = System.Web.Hosting.HostingEnvironment.MapPath("~/Content/emails/ResetPassword.html");
-            //var body = GenerateEmailBody(user);
-            EmailService emailService = new EmailService();
-
-                emailService.Send(user.Email, $"You code is: {code}." + Environment.NewLine +
-                    $"Please reset your password by providing Code, Email, Password and ConfirmPassword in {callbackUrl}.", "Reset Password");
-                 
+                string code = await UserManager.GeneratePasswordResetTokenAsync(user.Id);
+                await UserManager.SendEmailAsync(user.Id, "Reset Password", $"Your code to recover your password is {code}" +
+                    $"\n Use api/Account/ResetPassword and provide Code, Email, Password and ConfirmPassword");
                 return Ok();
+            }
+
+            // If we got this far, something failed, redisplay form
+            return BadRequest(ModelState);
         }
 
         // POST: api/Account/ResetPassword

@@ -34,6 +34,9 @@ namespace HouseholdBudgeter
                 RequireLowercase = true,
                 RequireUppercase = true,
             };
+            //Add this to make emails send out
+            manager.EmailService = new EmailService();
+
             var dataProtectionProvider = options.DataProtectionProvider;
             if (dataProtectionProvider != null)
             {

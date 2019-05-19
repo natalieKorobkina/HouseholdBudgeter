@@ -17,7 +17,6 @@ namespace HouseholdBudgeter.App_Start
             Mapper.Initialize(cfg => {
                 cfg.CreateMap<Household, HouseholdBindingModel>().ReverseMap();
                 cfg.CreateMap<Household, HouseholdViewModel>().ReverseMap();
-                cfg.CreateMap<Invitation, InvitationBindingModel>().ReverseMap();
                 cfg.CreateMap<Invitation, InvitationViewModel>().ReverseMap();
                 cfg.CreateMap<Category, CategoryBindingModel>().ReverseMap();
                 cfg.CreateMap<Category, CategoryViewModel>().ReverseMap();

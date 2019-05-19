@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using HouseholdBudgeter.Models;
 using HouseholdBudgeter.Models.BindingModels;
 using HouseholdBudgeter.Models.Domain;
+using HouseholdBudgeter.Models.Helpers;
 using HouseholdBudgeter.Models.ViewModels;
 using Microsoft.AspNet.Identity;
 using System;
@@ -18,24 +20,24 @@ namespace HouseholdBudgeter.Controllers
     public class HouseHoldController : ApiController
     {
         private ApplicationDbContext DbContext;
+        private HBHelper hBHelper;
 
         public HouseHoldController()
         {
             DbContext = new ApplicationDbContext();
+            hBHelper = new HBHelper(DbContext);
         }
 
         public IHttpActionResult PostHousehold(HouseholdBindingModel bindingModel)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
             var household = Mapper.Map<Household>(bindingModel);
+            var owner = hBHelper.GetCurrentUser();
 
             household.Created = DateTime.Now;
-            household.OwnerId = User.Identity.GetUserId();
-            var owner = DbContext.Users.FirstOrDefault(u => u.Id == household.OwnerId);
+            household.OwnerId = owner.Id;
             household.Participants.Add(owner);
 
             DbContext.Households.Add(household);
@@ -47,82 +49,86 @@ namespace HouseholdBudgeter.Controllers
             return Created(url, householdModel);
         }
 
-        // POST: api/Account/PutHousehold
-        public IHttpActionResult PutHousehold(HouseholdBindingModel bindingModel)
+        public IHttpActionResult PutHousehold(int id, HouseholdBindingModel bindingModel)
         {
             if (!ModelState.IsValid)
                 return BadRequest("Not a valid model");
 
-            var existingHousehold = DbContext.Households.FirstOrDefault(h => h.Id == bindingModel.Id);
-            if (existingHousehold == null)
+            var household = hBHelper.GetHouseholdById(id);
+            if (household == null)
                 return NotFound();
 
-            var userId = User.Identity.GetUserId();
-
-            //Check if owner is trying to update information
-            if (userId != existingHousehold.OwnerId)
-            {
+            if (!hBHelper.CheckIfOwner(household.OwnerId))
                 return BadRequest("Just owners can update household' information");
-            }
-
-            Mapper.Map(bindingModel, existingHousehold);
-            existingHousehold.Updated = DateTime.Now;
+            
+            Mapper.Map(bindingModel, household);
+            household.Updated = DateTime.Now;
             DbContext.SaveChanges();
 
-            var householdModel = Mapper.Map<HouseholdViewModel>(existingHousehold);
+            var householdModel = Mapper.Map<HouseholdViewModel>(household);
 
             return Ok(householdModel);
         }
 
-        // POST: api/HouseHold/PostInvite
-        public IHttpActionResult PostInvite(int householdId, string email)
+        public IHttpActionResult Invite(string email, int householdId)
         {
-            var user = DbContext.Users.FirstOrDefault(u => u.Email == email);
-            var currentUserId = User.Identity.GetUserId();
-            var owner = DbContext.Households.FirstOrDefault(h => h.OwnerId == currentUserId);
+            var invitingUser = hBHelper.GetUserByEmail(email);
+            if (invitingUser == null)
+                return BadRequest("Cannot invite unregistered user");
 
-            if (user == null)
-                return BadRequest("You cannot invite unregistered user");
+            var household = hBHelper.GetHouseholdById(householdId);
+            if (household == null)
+                return NotFound();
 
-            if (owner == null)
+            if (hBHelper.isParticipant(household, invitingUser.Id))
+                return BadRequest("User is already participant");
+
+            if (!hBHelper.CheckIfOwner(household.OwnerId))
                 return BadRequest("Just owners can invite users");
 
+            var invitation = CreateInvitation(invitingUser.Id, invitingUser.Email, householdId);
+            var url = Url.Link("DefaultApi", new { Controller = "HouseHold", Id = invitation.Id });
+            var invitationModel = new InvitationViewModel
+            {
+                Id = invitation.Id,
+                Inviter = invitation.Inviter.UserName,
+                IsInvited =invitation.IsInvited.UserName,
+                HouseholdToJoin = invitation.HouseholdToJoin.Name
+            };
+
+            return Created(url, invitationModel);
+        }
+
+        private Invitation CreateInvitation(string userId, string email, int householdId)
+        {
             var method = $"api/HouseHold/PostJoin";
-            var householdName = DbContext.Households.FirstOrDefault(h => h.Id == householdId).Name;
+            var householdName = hBHelper.GetHouseholdById(householdId).Name;
 
             EmailService emailService = new EmailService();
 
-            emailService.Send(user.Email, $"You are invited to participate in household '{householdName}' \n" +
-                $"In order to join this household use {method}.", "Invitation");
+            emailService.Send(email, $"You are invited to participate in household '{householdName}' \n" +
+                $"In order to join this household use {method} and provide householdId {householdId}.", "Invitation");
 
             var invitation = new Invitation();
 
             invitation.InviterId = User.Identity.GetUserId();
-            invitation.IsInvitedId = user.Id;
+            invitation.IsInvitedId = userId;
             invitation.HouseholdToJoinId = householdId;
 
             DbContext.Invitations.Add(invitation);
             DbContext.SaveChanges();
 
-            var url = Url.Link("DefaultApi", new { Controller = "HouseHold", Id = invitation.Id });
-            var invitationModel = Mapper.Map<InvitationViewModel>(invitation);
-
-            return Created(url, invitationModel);
+            return invitation;
         }
 
-        // POST: api/HouseHold/Join
-        public IHttpActionResult Join(int householdId)
+        public IHttpActionResult PostJoin(int joiningHouseholdId)
         {
-            var household = DbContext.Households.FirstOrDefault(p => p.Id == householdId);
-
+            var household = hBHelper.GetHouseholdById(joiningHouseholdId);
             if (household == null)
                 return NotFound();
 
-            var currentUserId = User.Identity.GetUserId();
-            var currentUser = DbContext.Users.FirstOrDefault(u => u.Id == currentUserId);
-            var invitation = DbContext.Invitations
-                .FirstOrDefault(i => i.IsInvitedId == currentUserId && i.HouseholdToJoinId == household.Id);
-
+            var currentUser = hBHelper.GetCurrentUser();
+            var invitation = hBHelper.GetInvitationByUserAndHousehold(currentUser.Id, household.Id);
             if (invitation == null)
                 return BadRequest("Just invited users can join households");
 
@@ -133,20 +139,18 @@ namespace HouseholdBudgeter.Controllers
             return Ok();
         }
 
-        // POST: api/HouseHold/Leave
-        public IHttpActionResult Leave(int leavinghouseholdId)
+        public IHttpActionResult PostLeave(int leavingHouseholdId)
         {
-            var household = DbContext.Households.FirstOrDefault(p => p.Id == leavinghouseholdId);
-
+            var household = hBHelper.GetHouseholdById(leavingHouseholdId);
             if (household == null)
                 return NotFound();
 
-            var currentUserId = User.Identity.GetUserId();
-            var currentUser = DbContext.Users.FirstOrDefault(u => u.Id == currentUserId);
-            var isParticipant = household.Participants.Where(p => p.Id == currentUserId).Any();
-
-            if (!isParticipant)
+            var currentUser = hBHelper.GetCurrentUser();
+            if (!hBHelper.currentIsParticipant(household))
                 return BadRequest("Just participants can leave their households");
+
+            if (hBHelper.CheckIfOwner(household.OwnerId))
+                return BadRequest("Owner cannot leave their households");
 
             household.Participants.Remove(currentUser);
             DbContext.SaveChanges();
@@ -156,44 +160,32 @@ namespace HouseholdBudgeter.Controllers
 
         public IHttpActionResult GetParticipants(int householdId)
         {
-            var household = DbContext.Households.FirstOrDefault(p => p.Id == householdId);
-
+            var household = hBHelper.GetHouseholdById(householdId);
             if (household == null)
                 return NotFound();
 
-            var currentUserId = User.Identity.GetUserId();
-            var currentUser = DbContext.Users.FirstOrDefault(u => u.Id == currentUserId);
-            var isInHousehold = household.Participants.Where(p => p.Id == currentUserId).Any()
-                || household.OwnerId == currentUserId;
-
-            if (!isInHousehold)
+            if (!hBHelper.currentIsParticipant(household))
                 return BadRequest("Only participants can see information about their household");
 
             var participants = household.Participants
                 .Select(h => new ParticipantViewModel
                 {
                     Id = h.Id,
-                    UserName = h.UserName,
-                    Email = h.Email
+                    UserName = h.UserName
 
-                })
-                .ToList();
+                }).ToList();
 
             return Ok(participants);
         }
 
         public IHttpActionResult DeleteHousehold(int householdId)
         {
-            var household = DbContext.Households.FirstOrDefault(p => p.Id == householdId);
-
+            var household = hBHelper.GetHouseholdById(householdId);
             if (household == null)
                 return NotFound();
 
-            var currentUserId = User.Identity.GetUserId();
-            var owner = DbContext.Households.FirstOrDefault(h => h.OwnerId == currentUserId);
-            var message = "Just owners can delete their households";
-            if (owner == null)
-                return BadRequest(message);
+            if (!hBHelper.CheckIfOwner(household.OwnerId))
+                return BadRequest("Just owners can delete their households");
 
             DbContext.Households.Remove(household);
             DbContext.SaveChanges();

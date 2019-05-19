@@ -9,8 +9,8 @@ namespace HouseholdBudgeter.Models.ViewModels
     public class InvitationViewModel
     {
         public int Id { get; set; }
-        public string InviterId { get; set; }
-        public string IsInvitedId { get; set; }
-        public int HouseholdToJoinId { get; set; }
+        public string Inviter { get; set; }
+        public string IsInvited { get; set; }
+        public string HouseholdToJoin { get; set; }
     }
 }
