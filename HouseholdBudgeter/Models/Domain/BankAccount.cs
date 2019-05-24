@@ -5,20 +5,21 @@ using System.Web;
 
 namespace HouseholdBudgeter.Models.Domain
 {
-    public class Category
+    public class BankAccount
     {
         public int Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public DateTime Created { get;}
         public DateTime? Updated { get; set; }
+        public decimal Balance { get; set; }
 
-        public virtual Household CategoryHousehold { get; set; }
-        public int CategoryHouseholdId { get; set; }
+        public virtual Household Household { get; set; }
+        public int HouseholdId { get; set; }
 
-        public virtual List<Transaction> Transactions  { get; set; }
+        public virtual List<Transaction> Transactions { get; set; }
 
-        public Category()
+        public BankAccount()
         {
             Created = DateTime.Now;
             Transactions = new List<Transaction>();

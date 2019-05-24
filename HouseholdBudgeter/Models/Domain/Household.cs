@@ -12,7 +12,7 @@ namespace HouseholdBudgeter.Models.Domain
         public int Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
-        public DateTime Created { get; set; }
+        public DateTime Created { get; }
         public DateTime? Updated { get; set; } 
 
         public virtual ApplicationUser Owner { get; set; }
@@ -21,12 +21,15 @@ namespace HouseholdBudgeter.Models.Domain
         public virtual List<ApplicationUser> Participants { get; set; }
         public virtual List<Category> HouseholdCategories { get; set; }
         public virtual List<Invitation> HouseholdInvitation { get; set; }
+        public virtual List<BankAccount> BankAccounts { get; set; }
 
         public Household()
         {
+            Created = DateTime.Now;
             HouseholdCategories = new List<Category>();
             Participants = new List<ApplicationUser>();
             HouseholdInvitation = new List<Invitation>();
+            BankAccounts = new List<BankAccount>();
         }
     }
 }

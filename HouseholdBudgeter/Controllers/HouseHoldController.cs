@@ -3,6 +3,7 @@ using AutoMapper.QueryableExtensions;
 using HouseholdBudgeter.Models;
 using HouseholdBudgeter.Models.BindingModels;
 using HouseholdBudgeter.Models.Domain;
+using HouseholdBudgeter.Models.Filters;
 using HouseholdBudgeter.Models.Helpers;
 using HouseholdBudgeter.Models.ViewModels;
 using Microsoft.AspNet.Identity;
@@ -15,7 +16,6 @@ using System.Web.Http;
 
 namespace HouseholdBudgeter.Controllers
 {
-    [RoutePrefix("api/household")]
     [Authorize]
     public class HouseHoldController : ApiController
     {
@@ -28,15 +28,12 @@ namespace HouseholdBudgeter.Controllers
             hBHelper = new HBHelper(DbContext);
         }
 
+        [HouseholdCheckOwner]
         public IHttpActionResult PostHousehold(HouseholdBindingModel bindingModel)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
             var household = Mapper.Map<Household>(bindingModel);
             var owner = hBHelper.GetCurrentUser();
 
-            household.Created = DateTime.Now;
             household.OwnerId = owner.Id;
             household.Participants.Add(owner);
 
@@ -49,17 +46,10 @@ namespace HouseholdBudgeter.Controllers
             return Created(url, householdModel);
         }
 
+        [HouseholdCheckOwner]
         public IHttpActionResult PutHousehold(int id, HouseholdBindingModel bindingModel)
         {
-            if (!ModelState.IsValid)
-                return BadRequest("Not a valid model");
-
             var household = hBHelper.GetHouseholdById(id);
-            if (household == null)
-                return NotFound();
-
-            if (!hBHelper.CheckIfOwner(household.OwnerId))
-                return BadRequest("Just owners can update household' information");
             
             Mapper.Map(bindingModel, household);
             household.Updated = DateTime.Now;
@@ -70,23 +60,17 @@ namespace HouseholdBudgeter.Controllers
             return Ok(householdModel);
         }
 
-        public IHttpActionResult Invite(string email, int householdId)
+        [HouseholdCheckOwner]
+        public IHttpActionResult Invite(int id, string email)
         {
             var invitingUser = hBHelper.GetUserByEmail(email);
             if (invitingUser == null)
                 return BadRequest("Cannot invite unregistered user");
 
-            var household = hBHelper.GetHouseholdById(householdId);
-            if (household == null)
-                return NotFound();
-
-            if (hBHelper.isParticipant(household, invitingUser.Id))
+            if (hBHelper.isParticipant(hBHelper.GetHouseholdById(id), invitingUser.Id))
                 return BadRequest("User is already participant");
 
-            if (!hBHelper.CheckIfOwner(household.OwnerId))
-                return BadRequest("Just owners can invite users");
-
-            var invitation = CreateInvitation(invitingUser.Id, invitingUser.Email, householdId);
+            var invitation = CreateInvitation(invitingUser.Id, invitingUser.Email, id);
             var url = Url.Link("DefaultApi", new { Controller = "HouseHold", Id = invitation.Id });
             var invitationModel = new InvitationViewModel
             {
@@ -139,34 +123,23 @@ namespace HouseholdBudgeter.Controllers
             return Ok();
         }
 
-        public IHttpActionResult PostLeave(int leavingHouseholdId)
+        [HouseholdCheckParticipant]
+        public IHttpActionResult PostLeave(int id)
         {
-            var household = hBHelper.GetHouseholdById(leavingHouseholdId);
-            if (household == null)
-                return NotFound();
-
-            var currentUser = hBHelper.GetCurrentUser();
-            if (!hBHelper.currentIsParticipant(household))
-                return BadRequest("Just participants can leave their households");
-
+            var household = hBHelper.GetHouseholdById(id);
             if (hBHelper.CheckIfOwner(household.OwnerId))
                 return BadRequest("Owner cannot leave their households");
 
-            household.Participants.Remove(currentUser);
+            household.Participants.Remove(hBHelper.GetCurrentUser());
             DbContext.SaveChanges();
 
             return Ok();
         }
 
-        public IHttpActionResult GetParticipants(int householdId)
+        [HouseholdCheckParticipant]
+        public IHttpActionResult GetParticipants(int id)
         {
-            var household = hBHelper.GetHouseholdById(householdId);
-            if (household == null)
-                return NotFound();
-
-            if (!hBHelper.currentIsParticipant(household))
-                return BadRequest("Only participants can see information about their household");
-
+            var household = hBHelper.GetHouseholdById(id);
             var participants = household.Participants
                 .Select(h => new ParticipantViewModel
                 {
@@ -178,16 +151,14 @@ namespace HouseholdBudgeter.Controllers
             return Ok(participants);
         }
 
-        public IHttpActionResult DeleteHousehold(int householdId)
+        [HouseholdCheckOwner]
+        public IHttpActionResult DeleteHousehold(int id)
         {
-            var household = hBHelper.GetHouseholdById(householdId);
-            if (household == null)
-                return NotFound();
+            var categories = hBHelper.GetCategoriesOfHousehold(id);
+            if (categories.Count() != 0)
+                categories.ForEach(c => DbContext.Categories.Remove(c));
 
-            if (!hBHelper.CheckIfOwner(household.OwnerId))
-                return BadRequest("Just owners can delete their households");
-
-            DbContext.Households.Remove(household);
+            DbContext.Households.Remove(hBHelper.GetHouseholdById(id));
             DbContext.SaveChanges();
 
             return Ok();

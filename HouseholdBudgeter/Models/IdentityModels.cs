@@ -25,6 +25,8 @@ namespace HouseholdBudgeter.Models
         [InverseProperty(nameof(Invitation.IsInvited))]
         public virtual List<Invitation> Invited { get; set; }
 
+        public virtual List<Transaction> Creators { get; set; }
+
         public ApplicationUser()
         {
             OwnersHouseholds = new List<Household>();
@@ -50,10 +52,22 @@ namespace HouseholdBudgeter.Models
         public DbSet<Household> Households { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Invitation> Invitations { get; set; }
+        public DbSet<BankAccount> BankAccounts { get; set; }
+        public DbSet<Transaction> Transactions { get; set; }
 
         public static ApplicationDbContext Create()
         {
             return new ApplicationDbContext();
+        }
+
+        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Household>()
+            .HasMany(h => h.HouseholdCategories)
+            .WithRequired(h => h.CategoryHousehold)
+            .WillCascadeOnDelete(false);
         }
     }
 }

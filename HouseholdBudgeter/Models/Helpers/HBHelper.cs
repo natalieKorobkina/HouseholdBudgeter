@@ -55,6 +55,41 @@ namespace HouseholdBudgeter.Models.Helpers
             return DbContext.Categories.FirstOrDefault(c => c.Id == id);
         }
 
+        public BankAccount GetBankAccountById(int id)
+        {
+            return DbContext.BankAccounts.FirstOrDefault(c => c.Id == id);
+        }
+
+        public Transaction GetTransactionById(int id)
+        {
+            return DbContext.Transactions.FirstOrDefault(c => c.Id == id);
+        }
+
+        public IQueryable<Transaction> GetTransactionOfAccount(int id)
+        {
+            return DbContext.Transactions.Where(t => t.BankAccountId == id);
+        }
+
+        public IQueryable<Transaction> GetTransactionWithCategory(int id)
+        {
+            return DbContext.Transactions.Where(t => t.CategoryId == id);
+        }
+
+        public List <Category> GetCategoriesOfHousehold(int id)
+        {
+            return DbContext.Categories.Where(c => c.CategoryHouseholdId == id).ToList();
+        }
+
+        public decimal CalculateBankAccountBalance(int id)
+        {
+            var transactions = GetTransactionOfAccount(id).Where(t => t.Voided == false).ToList();
+            var balance = (transactions.Count() != 0) ? transactions.Select(t => t.Ammount).ToList().Sum() : 0;
+
+            DbContext.SaveChanges();
+
+            return balance;
+        }
+
         public bool currentIsParticipant(Household household)
         {
             if (household.Participants.Where(p => p.Id == GetCurrentUserId()).Any())
