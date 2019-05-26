@@ -31,6 +31,9 @@ namespace HouseholdBudgeter.Models
         {
             OwnersHouseholds = new List<Household>();
             ParticipantsHouseholds = new List<Household>();
+            Inviters = new List<Invitation>();
+            Invited = new List<Invitation>();
+            Creators = new List<Transaction>();
         }
 
         public async Task<ClaimsIdentity> GenerateUserIdentityAsync(UserManager<ApplicationUser> manager, string authenticationType)
@@ -68,6 +71,21 @@ namespace HouseholdBudgeter.Models
             .HasMany(h => h.HouseholdCategories)
             .WithRequired(h => h.CategoryHousehold)
             .WillCascadeOnDelete(false);
+
+            modelBuilder.Entity<BankAccount>()
+                .Property(p => p.Name).IsRequired().HasMaxLength(100).IsUnicode(false);
+            modelBuilder.Entity<BankAccount>()
+                .Property(p => p.Description).IsRequired().HasMaxLength(300).IsUnicode(false);
+
+            modelBuilder.Entity<Category>()
+                .Property(p => p.Name).IsRequired().HasMaxLength(100).IsUnicode(false);
+            modelBuilder.Entity<Category>()
+                .Property(p => p.Description).IsRequired().HasMaxLength(300).IsUnicode(false);
+
+            modelBuilder.Entity<Transaction>()
+                .Property(p => p.Title).IsRequired().HasMaxLength(100).IsUnicode(false);
+            modelBuilder.Entity<Household>()
+                .Property(p => p.Description).IsRequired().HasMaxLength(300).IsUnicode(false);
         }
     }
 }

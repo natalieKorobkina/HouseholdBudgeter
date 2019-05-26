@@ -17,11 +17,11 @@ namespace HouseholdBudgeter.Models.ViewModels
 
         public int HouseholdId { get; set; }
 
-        public List<TransactionsViewModel> Transactions { get; set; }
+        public List<TransactionViewModel> Transactions { get; set; }
 
         public BankAccountViewModel()
         {
-            Transactions = new List<TransactionsViewModel>();
+            Transactions = new List<TransactionViewModel>();
         }
     }
 }

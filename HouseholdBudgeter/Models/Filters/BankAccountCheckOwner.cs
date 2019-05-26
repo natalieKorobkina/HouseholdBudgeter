@@ -24,13 +24,8 @@ namespace HouseholdBudgeter.Models.Filters
         {
             var modelState = actionContext.ModelState;
             if (!modelState.IsValid)
-            {
-                actionContext.Response = new HttpResponseMessage()
-                {
-                    StatusCode = HttpStatusCode.BadRequest,
-                    Content = new StringContent("Not a valid model")
-                };
-            }
+                actionContext.Response = actionContext.Request.CreateErrorResponse(
+                        HttpStatusCode.BadRequest, actionContext.ModelState);
 
             var actionParamentrBAccount = actionContext.ActionArguments.SingleOrDefault(p => p.Key == "id").Value;
             var bankAccountId = 0;
@@ -44,11 +39,8 @@ namespace HouseholdBudgeter.Models.Filters
                     p.Household.OwnerId == userId);
 
                 if (bankAccount == null)
-                    actionContext.Response = new HttpResponseMessage()
-                    {
-                        StatusCode = HttpStatusCode.NotFound,
-                        Content = new StringContent("Bank account doens't exist in your household")
-                    };
+                    actionContext.Response = actionContext.Request.CreateErrorResponse(
+                        HttpStatusCode.BadRequest, "Bank account doens't exist or your have no right to perfom operation");
             }
         }
     }

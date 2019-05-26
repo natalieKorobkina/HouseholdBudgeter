@@ -21,6 +21,13 @@ namespace HouseholdBudgeter
             BundleConfig.RegisterBundles(BundleTable.Bundles);
 
             AutoMapperConfig.Init();
+
+            //Swithch off reference loop
+            //var config = GlobalConfiguration.Configuration;
+
+            //config.Formatters.JsonFormatter.SerializerSettings
+            //    .ReferenceLoopHandling
+            // = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
         }
     }
 }

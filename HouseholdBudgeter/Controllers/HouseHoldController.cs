@@ -31,10 +31,14 @@ namespace HouseholdBudgeter.Controllers
         [HouseholdCheckOwner]
         public IHttpActionResult PostHousehold(HouseholdBindingModel bindingModel)
         {
+            if (bindingModel == null)
+                return BadRequest("Provide required parameters");
+
             var household = Mapper.Map<Household>(bindingModel);
             var owner = hBHelper.GetCurrentUser();
 
             household.OwnerId = owner.Id;
+            household.Created = DateTime.Now;
             household.Participants.Add(owner);
 
             DbContext.Households.Add(household);
@@ -49,6 +53,9 @@ namespace HouseholdBudgeter.Controllers
         [HouseholdCheckOwner]
         public IHttpActionResult PutHousehold(int id, HouseholdBindingModel bindingModel)
         {
+            if (bindingModel == null)
+                return BadRequest("Provide required parameters");
+
             var household = hBHelper.GetHouseholdById(id);
             
             Mapper.Map(bindingModel, household);

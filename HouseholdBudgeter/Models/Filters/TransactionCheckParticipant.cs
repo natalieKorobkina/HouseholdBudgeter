@@ -25,13 +25,8 @@ namespace HouseholdBudgeter.Models.Filters
         {
             var modelState = actionContext.ModelState;
             if (!modelState.IsValid)
-            {
-                actionContext.Response = new HttpResponseMessage()
-                {
-                    StatusCode = HttpStatusCode.BadRequest,
-                    Content = new StringContent("Not a valid model")
-                };
-            }
+                actionContext.Response = actionContext.Request.CreateErrorResponse(
+                    HttpStatusCode.BadRequest, actionContext.ModelState);
 
             var actionParamentrBAccount = actionContext.ActionArguments.SingleOrDefault(p => p.Key == "id").Value;
             var bankAccountId = 0;
@@ -44,27 +39,23 @@ namespace HouseholdBudgeter.Models.Filters
                     p.Household.Participants.Where(m => m.Id == userId).Any());
 
                 if (bankAccount == null)
-                {
-                    actionContext.Response = new HttpResponseMessage()
-                    {
-                        StatusCode = HttpStatusCode.NotFound,
-                        Content = new StringContent("Bank account doens't exist in your household")
-                    };
-                }
+                    actionContext.Response = actionContext.Request.CreateErrorResponse(
+                        HttpStatusCode.BadRequest, "Bank account doens't exist or your have no right to perfom operation");
                 else
                 {
-                    TransactionBindingModel model = (TransactionBindingModel)actionContext.ActionArguments["bindingModel"];
-                    if (model != null)
+                    var actionModel = actionContext.ActionArguments.SingleOrDefault(p => p.Key == "bindingModel").Value;
+                    if (actionModel != null)
                     {
-                        var category = DbContext.Categories.FirstOrDefault(p => p.Id == model.CategoryId &&
-                    p.CategoryHousehold.Participants.Where(m => m.Id == userId).Any());
+                        TransactionBindingModel model = (TransactionBindingModel)actionContext.ActionArguments["bindingModel"];
+                        if (model != null)
+                        {
+                            var category = DbContext.Categories.FirstOrDefault(p => p.Id == model.CategoryId &&
+                        p.CategoryHousehold.Participants.Where(m => m.Id == userId).Any());
 
-                        if (category == null)
-                            actionContext.Response = new HttpResponseMessage()
-                            {
-                                StatusCode = HttpStatusCode.NotFound,
-                                Content = new StringContent("Category doens't exist in your household")
-                            };
+                            if (category == null)
+                                actionContext.Response = actionContext.Request.CreateErrorResponse(
+                            HttpStatusCode.BadRequest, "Category doens't exist or your have no right to perfom operation");
+                        }
                     }
                 }
             }

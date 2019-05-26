@@ -24,13 +24,8 @@ namespace HouseholdBudgeter.Models.Filters
         {
             var modelState = actionContext.ModelState;
             if (!modelState.IsValid)
-            {
-                actionContext.Response = new HttpResponseMessage()
-                {
-                    StatusCode = HttpStatusCode.BadRequest,
-                    Content = new StringContent("Not a valid model")
-                };
-            }
+                actionContext.Response = actionContext.Request.CreateErrorResponse(
+                    HttpStatusCode.BadRequest, actionContext.ModelState);
 
             var actionParamentr = actionContext.ActionArguments.SingleOrDefault(p => p.Key == "id").Value;
             var householdId = 0;
@@ -38,18 +33,12 @@ namespace HouseholdBudgeter.Models.Filters
             {
                 var household = hBHelper.GetHouseholdById(householdId);
                 if (household == null)
-                    actionContext.Response = new HttpResponseMessage()
-                    {
-                        StatusCode = HttpStatusCode.NotFound,
-                        Content = new StringContent("Household doens't exist")
-                    };
-                else if (!hBHelper.CheckIfOwner(household.OwnerId))
-                    actionContext.Response = new HttpResponseMessage()
-                    {
-                        StatusCode = HttpStatusCode.NotFound,
-                        Content = new StringContent("You aren't an owner of this household")
-                    };
+                    actionContext.Response = actionContext.Request.CreateErrorResponse(
+                        HttpStatusCode.BadRequest, "Household doens't exist");
 
+                else if (!hBHelper.CheckIfOwner(household.OwnerId))
+                    actionContext.Response = actionContext.Request.CreateErrorResponse(
+                        HttpStatusCode.BadRequest, "You aren't an owner of this household");
             }
         }
     }

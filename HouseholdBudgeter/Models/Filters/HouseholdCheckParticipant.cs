@@ -1,4 +1,5 @@
 ﻿using HouseholdBudgeter.Models.Helpers;
+using Microsoft.AspNet.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,41 +14,26 @@ namespace HouseholdBudgeter.Models.Filters
     {
         public ApplicationDbContext DbContext = new ApplicationDbContext();
         public virtual IDictionary<string, object> ActionArguments { get; }
-        private HBHelper hBHelper;
-
-        public HouseholdCheckParticipant()
-        {
-            hBHelper = new HBHelper(DbContext);
-        }
-
         public override void OnActionExecuting(HttpActionContext actionContext)
         {
             var modelState = actionContext.ModelState;
             if (!modelState.IsValid)
-            {
-                actionContext.Response = new HttpResponseMessage()
-                {
-                    StatusCode = HttpStatusCode.BadRequest,
-                    Content = new StringContent("Not a valid model")
-                };
-            }
+                actionContext.Response = actionContext.Request.CreateErrorResponse(
+                        HttpStatusCode.BadRequest, actionContext.ModelState);
 
             var actionParamentrHousehold = actionContext.ActionArguments.SingleOrDefault(p => p.Key == "id").Value;
             var householdId = 0;
             if (actionParamentrHousehold != null && Int32.TryParse(actionParamentrHousehold.ToString(), out householdId))
             {
-                var userId = hBHelper.GetCurrentUserId();
+                var userId = HttpContext.Current.User.Identity.GetUserId(); 
                 var household = DbContext
                .Households
                .FirstOrDefault(p => p.Id == householdId &&
                (p.Participants.Any(t => t.Id == userId)));
 
                 if (household == null)
-                    actionContext.Response = new HttpResponseMessage()
-                    {
-                        StatusCode = HttpStatusCode.NotFound,
-                        Content = new StringContent("You have no right see that information")
-                    };
+                    actionContext.Response = actionContext.Request.CreateErrorResponse(
+                        HttpStatusCode.BadRequest, "Household doens't exist or your have no right to perfom operation");
             }
         }
     }

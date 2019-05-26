@@ -25,13 +25,8 @@ namespace HouseholdBudgeter.Models.Filters
         {
             var modelState = actionContext.ModelState;
             if (!modelState.IsValid)
-            {
-                actionContext.Response = new HttpResponseMessage()
-                {
-                    StatusCode = HttpStatusCode.BadRequest,
-                    Content = new StringContent("Not a valid model")
-                };
-            }
+                actionContext.Response = actionContext.Request.CreateErrorResponse(
+                        HttpStatusCode.BadRequest, actionContext.ModelState);
 
             var actionParamentrTransaction = actionContext.ActionArguments.SingleOrDefault(p => p.Key == "id").Value;
             var transactionId = 0;
@@ -40,11 +35,8 @@ namespace HouseholdBudgeter.Models.Filters
             {
                 var transaction = hBHelper.GetTransactionById(transactionId);
                 if(transaction == null)
-                    actionContext.Response = new HttpResponseMessage()
-                    {
-                        StatusCode = HttpStatusCode.NotFound,
-                        Content = new StringContent("Transaction doens't exist")
-                    };
+                    actionContext.Response = actionContext.Request.CreateErrorResponse(
+                        HttpStatusCode.BadRequest, "Transaction doens't exist");
                 else
                 {
                     var bankAccount = DbContext
@@ -52,26 +44,24 @@ namespace HouseholdBudgeter.Models.Filters
                     .FirstOrDefault(p => p.Id == transaction.BankAccountId &&
                     (p.Household.OwnerId == userId || transaction.OwnerId == userId));
                     if (bankAccount == null)
-                        actionContext.Response = new HttpResponseMessage()
-                        {
-                            StatusCode = HttpStatusCode.NotFound,
-                            Content = new StringContent("You do not have access to this bank account")
-                        };
+                        actionContext.Response = actionContext.Request.CreateErrorResponse(
+                        HttpStatusCode.BadRequest, "Bank account doens't exist or your have no right to perfom operation");
                     else
                     {
-                        TransactionBindingModel model = (TransactionBindingModel)actionContext.ActionArguments["bindingModel"];
-                        if (model != null)
+                        var actionModel = actionContext.ActionArguments.SingleOrDefault(p => p.Key == "bindingModel").Value;
+                        if (actionModel != null)
                         {
-                            var category = DbContext.Categories.FirstOrDefault(p => p.Id == model.CategoryId &&
-                        p.CategoryHousehold.Participants.Where(m => m.Id == userId).Any());
+                            TransactionBindingModel model = (TransactionBindingModel)actionContext.ActionArguments["bindingModel"];
+                            if (model != null)
+                            {
+                                var category = DbContext.Categories.FirstOrDefault(p => p.Id == model.CategoryId &&
+                            p.CategoryHousehold.Participants.Where(m => m.Id == userId).Any());
 
-                            if (category == null)
-                                actionContext.Response = new HttpResponseMessage()
-                                {
-                                    StatusCode = HttpStatusCode.NotFound,
-                                    Content = new StringContent("Category doens't exist in your household")
-                                };
-                        }
+                                if (category == null)
+                                    actionContext.Response = actionContext.Request.CreateErrorResponse(
+                            HttpStatusCode.BadRequest, "Category doens't exist or your have no right to perfom operation");
+                            }
+                        } 
                     }
                 }   
             }

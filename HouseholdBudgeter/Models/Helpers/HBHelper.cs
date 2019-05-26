@@ -85,8 +85,6 @@ namespace HouseholdBudgeter.Models.Helpers
             var transactions = GetTransactionOfAccount(id).Where(t => t.Voided == false).ToList();
             var balance = (transactions.Count() != 0) ? transactions.Select(t => t.Ammount).ToList().Sum() : 0;
 
-            DbContext.SaveChanges();
-
             return balance;
         }
 

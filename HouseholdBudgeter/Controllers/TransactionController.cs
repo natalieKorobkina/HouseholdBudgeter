@@ -31,8 +31,12 @@ namespace HouseholdBudgeter.Controllers
         [TransactionCheckParticipant]
         public IHttpActionResult PostTransaction(int id, TransactionBindingModel bindingModel)
         {
+            if (bindingModel == null)
+                return BadRequest("Provide required parameters");
+
             var transaction = Mapper.Map<Transaction>(bindingModel);
             transaction.OwnerId = User.Identity.GetUserId();
+            transaction.Created = DateTime.Now;
             transaction.BankAccountId = id;
 
             DbContext.Transactions.Add(transaction);
@@ -48,12 +52,17 @@ namespace HouseholdBudgeter.Controllers
         [TransactionCheckOwner]
         public IHttpActionResult PutTransaction(int id, TransactionBindingModel bindingModel)
         {
+            if (bindingModel == null)
+                return BadRequest("Provide required parameters");
+
             var transaction = hBHelper.GetTransactionById(id);
-            
+            var prevAmount = transaction.Ammount;
+
             Mapper.Map(bindingModel, transaction);
             transaction.Updated = DateTime.Now;
 
-            hBHelper.GetBankAccountById(transaction.BankAccountId).Balance += bindingModel.Ammount;
+            var bankAccount = hBHelper.GetBankAccountById(transaction.BankAccountId);
+            bankAccount.Balance = bankAccount.Balance - prevAmount + bindingModel.Ammount;
             DbContext.SaveChanges();
             
             var transactionModel = Mapper.Map<TransactionViewModel>(transaction);
@@ -66,11 +75,17 @@ namespace HouseholdBudgeter.Controllers
         {
             var transaction = hBHelper.GetTransactionById(id);
             
-            transaction.Voided = true;
-            hBHelper.GetBankAccountById(transaction.BankAccountId).Balance -= transaction.Ammount;
-            DbContext.SaveChanges();
+            if (transaction.Voided == false)
+            {
+                transaction.Voided = true;
+                hBHelper.GetBankAccountById(transaction.BankAccountId).Balance -= transaction.Ammount;
+                transaction.Updated = DateTime.Now;
+                DbContext.SaveChanges();
+            }
+            
+            var transactionModel = Mapper.Map<TransactionViewModel>(transaction);
 
-            return Ok(transaction);
+            return Ok(transactionModel);
         }
 
         [TransactionCheckOwner]

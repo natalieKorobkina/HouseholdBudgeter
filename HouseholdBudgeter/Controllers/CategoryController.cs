@@ -31,8 +31,12 @@ namespace HouseholdBudgeter.Controllers
         [HouseholdCheckOwner]
         public IHttpActionResult PostCategory(int id, CategoryBindingModel bindingModel)
         {
+            if (bindingModel == null)
+                return BadRequest("Provide required parameters");
+
             var category = Mapper.Map<Category>(bindingModel);
             category.CategoryHouseholdId = id;
+            category.Created = DateTime.Now;
 
             DbContext.Categories.Add(category);
             DbContext.SaveChanges();
@@ -46,6 +50,9 @@ namespace HouseholdBudgeter.Controllers
         [CategoryCheckOwner]
         public IHttpActionResult PutCategory(int id, int householdId, CategoryBindingModel bindingModel)
         {
+            if (bindingModel == null)
+                return BadRequest("Provide required parameters");
+
             var category= hBHelper.GetCategoryById(id);
             
             Mapper.Map(bindingModel, category);
@@ -61,7 +68,12 @@ namespace HouseholdBudgeter.Controllers
         [CategoryCheckOwner]
         public IHttpActionResult DeleteCategory(int id)
         {
-            DbContext.Categories.Remove(hBHelper.GetCategoryById(id));
+            var category = hBHelper.GetCategoryById(id);
+            var transactions = DbContext.Transactions.Where(t => t.CategoryId == id).ToList();
+            if (transactions.Count() != 0)
+                transactions.ForEach(t => hBHelper.GetBankAccountById(t.BankAccountId).Balance -= t.Ammount);
+
+            DbContext.Categories.Remove(category);
             DbContext.SaveChanges();
 
             return Ok();

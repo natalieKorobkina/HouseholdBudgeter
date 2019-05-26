@@ -30,9 +30,13 @@ namespace HouseholdBudgeter.Controllers
         [HouseholdCheckOwner]
         public IHttpActionResult PostBankAccount(int id, BankAccountBindingModel bindingModel)
         {
+            if (bindingModel == null)
+                return BadRequest("Provide required parameters");
+
             var bankAccount = Mapper.Map<BankAccount>(bindingModel);
 
             bankAccount.HouseholdId = id;
+            bankAccount.Created = DateTime.Now;
             bankAccount.Balance = 0;
 
             DbContext.BankAccounts.Add(bankAccount);
@@ -47,6 +51,9 @@ namespace HouseholdBudgeter.Controllers
         [BankAccountCheckOwner]
         public IHttpActionResult PutBankAccount(int id, BankAccountBindingModel bindingModel)
         {
+            if (bindingModel == null)
+                return BadRequest("Provide required parameters");
+
             var bankAccount = hBHelper.GetBankAccountById(id);
             
             Mapper.Map(bindingModel, bankAccount);
@@ -80,12 +87,14 @@ namespace HouseholdBudgeter.Controllers
         }
 
         [BankAccountCheckOwner]
-        public IHttpActionResult GetBalance(int id)
+        public IHttpActionResult PutBalance(int id)
         {
             var bankAccount = hBHelper.GetBankAccountById(id);
             bankAccount.Balance = hBHelper.CalculateBankAccountBalance(id);
-               
-            return Ok(bankAccount);
+            DbContext.SaveChanges();
+            var bankAccountModel = Mapper.Map<BankAccountViewModel>(bankAccount);
+
+            return Ok(bankAccountModel);
         }
     }
 }
