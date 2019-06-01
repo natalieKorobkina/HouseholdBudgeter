@@ -21,6 +21,8 @@ namespace HouseholdBudgeter.Models.Domain
 
         public BankAccount()
         {
+            Created = DateTime.Now;
+            Balance = 0;
             Transactions = new List<Transaction>();
         }
     }

@@ -25,6 +25,7 @@ namespace HouseholdBudgeter.Models.Domain
 
         public Household()
         {
+            Created = DateTime.Now;
             HouseholdCategories = new List<Category>();
             Participants = new List<ApplicationUser>();
             HouseholdInvitation = new List<Invitation>();

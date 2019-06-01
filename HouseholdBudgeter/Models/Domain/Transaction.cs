@@ -25,5 +25,9 @@ namespace HouseholdBudgeter.Models.Domain
         public virtual Category Category { get; set; }
         public int CategoryId { get; set; }
 
+        public Transaction()
+        {
+            Created = DateTime.Now;
+        }
     }
 }

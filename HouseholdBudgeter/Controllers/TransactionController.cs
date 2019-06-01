@@ -36,7 +36,6 @@ namespace HouseholdBudgeter.Controllers
 
             var transaction = Mapper.Map<Transaction>(bindingModel);
             transaction.OwnerId = User.Identity.GetUserId();
-            transaction.Created = DateTime.Now;
             transaction.BankAccountId = id;
 
             DbContext.Transactions.Add(transaction);
@@ -62,7 +61,9 @@ namespace HouseholdBudgeter.Controllers
             transaction.Updated = DateTime.Now;
 
             var bankAccount = hBHelper.GetBankAccountById(transaction.BankAccountId);
-            bankAccount.Balance = bankAccount.Balance - prevAmount + bindingModel.Ammount;
+
+            bankAccount.Balance = !transaction.Voided 
+                ? bankAccount.Balance - prevAmount + bindingModel.Ammount : bankAccount.Balance;
             DbContext.SaveChanges();
             
             var transactionModel = Mapper.Map<TransactionViewModel>(transaction);
@@ -94,7 +95,10 @@ namespace HouseholdBudgeter.Controllers
             var transaction = hBHelper.GetTransactionById(id);
             
             DbContext.Transactions.Remove(transaction);
+
+            if (!transaction.Voided)
             hBHelper.GetBankAccountById(transaction.BankAccountId).Balance -= transaction.Ammount;
+
             DbContext.SaveChanges();
 
             return Ok();

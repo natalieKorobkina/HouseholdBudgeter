@@ -34,10 +34,7 @@ namespace HouseholdBudgeter.Controllers
                 return BadRequest("Provide required parameters");
 
             var bankAccount = Mapper.Map<BankAccount>(bindingModel);
-
             bankAccount.HouseholdId = id;
-            bankAccount.Created = DateTime.Now;
-            bankAccount.Balance = 0;
 
             DbContext.BankAccounts.Add(bankAccount);
             DbContext.SaveChanges();

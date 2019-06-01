@@ -28,6 +28,49 @@ namespace HouseholdBudgeter.Controllers
             hBHelper = new HBHelper(DbContext);
         }
 
+        public IHttpActionResult GetAll()
+        {
+            var userId = User.Identity.GetUserId();
+            var households = DbContext.Households
+                .Where(h => h.Participants.Where(p =>p.Id == userId).Any())
+                .Select(p => new HouseholdInListViewModel
+                {
+                    Id = p.Id,
+                    Created = p.Created,
+                    Updated = p.Updated,
+                    Name = p.Name,
+                    Description = p.Description,
+                    IsOwner = (p.OwnerId == userId)
+                }).ToList();
+           
+            return Ok(households);
+        }
+
+        public IHttpActionResult GetInvitingHouseholds()
+        {
+            var userId = User.Identity.GetUserId();
+            var households = DbContext.Households
+                .Where(h => h.HouseholdInvitation.Where(p => p.IsInvitedId == userId).Any())
+                .ProjectTo<HouseholdViewModel>()
+                .ToList();
+
+            return Ok(households);
+        }
+
+        [HouseholdCheckOwner]
+        public IHttpActionResult GetHousehold(int id)
+        {
+            var household = hBHelper.GetHouseholdById(id);
+
+            if (household == null)
+                return BadRequest();
+
+            var householdModel = Mapper.Map<HouseholdViewModel>(household);
+
+            return Ok(householdModel);
+
+        }
+
         [HouseholdCheckOwner]
         public IHttpActionResult PostHousehold(HouseholdBindingModel bindingModel)
         {
@@ -38,7 +81,6 @@ namespace HouseholdBudgeter.Controllers
             var owner = hBHelper.GetCurrentUser();
 
             household.OwnerId = owner.Id;
-            household.Created = DateTime.Now;
             household.Participants.Add(owner);
 
             DbContext.Households.Add(household);
@@ -90,7 +132,7 @@ namespace HouseholdBudgeter.Controllers
             return Created(url, invitationModel);
         }
 
-        private Invitation CreateInvitation(string userId, string email, int householdId)
+            private Invitation CreateInvitation(string userId, string email, int householdId)
         {
             var method = $"api/HouseHold/PostJoin";
             var householdName = hBHelper.GetHouseholdById(householdId).Name;

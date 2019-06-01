@@ -36,7 +36,6 @@ namespace HouseholdBudgeter.Controllers
 
             var category = Mapper.Map<Category>(bindingModel);
             category.CategoryHouseholdId = id;
-            category.Created = DateTime.Now;
 
             DbContext.Categories.Add(category);
             DbContext.SaveChanges();

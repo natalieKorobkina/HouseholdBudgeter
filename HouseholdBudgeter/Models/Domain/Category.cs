@@ -20,6 +20,7 @@ namespace HouseholdBudgeter.Models.Domain
 
         public Category()
         {
+            Created = DateTime.Now;
             Transactions = new List<Transaction>();
         }
     }

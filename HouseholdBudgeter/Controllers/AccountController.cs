@@ -6,7 +6,6 @@ using System.Security.Cryptography;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
-using System.Web.Http.ModelBinding;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.AspNet.Identity.Owin;
@@ -234,8 +233,9 @@ namespace HouseholdBudgeter.Controllers
 
                 // Send an email with this link
                 string code = await UserManager.GeneratePasswordResetTokenAsync(user.Id);
-                await UserManager.SendEmailAsync(user.Id, "Reset Password", $"Your code to recover your password is {code}" +
-                    $"\n Use api/Account/ResetPassword and provide Code, Email, Password and ConfirmPassword");
+                await UserManager.SendEmailAsync(user.Id, "Reset Password",
+                    $"Please reset your password using this code: {code}");
+
                 return Ok();
             }
 
