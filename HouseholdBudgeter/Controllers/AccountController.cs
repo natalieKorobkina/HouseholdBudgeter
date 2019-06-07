@@ -222,7 +222,7 @@ namespace HouseholdBudgeter.Controllers
         // POST: api/Account/ForgotPassword
         [AllowAnonymous]
         [Route("ForgotPassword")]
-        public async Task<IHttpActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        public async Task<IHttpActionResult> ForgotPassword(string frontUrl, ForgotPasswordViewModel model)
         {
             if (ModelState.IsValid)
             {
@@ -233,8 +233,11 @@ namespace HouseholdBudgeter.Controllers
 
                 // Send an email with this link
                 string code = await UserManager.GeneratePasswordResetTokenAsync(user.Id);
+                var encodedCode = HttpUtility.UrlEncode(code);
+                //var url = Url.Route("Default", new { controller = "Account", action = "ResetPassword", code = code });
+
                 await UserManager.SendEmailAsync(user.Id, "Reset Password",
-                    $"Please reset your password using this code: {code}");
+                   $"Please reset your password by clicking <a href =\""+ frontUrl + "?code=" + encodedCode + "\">here</a>");
 
                 return Ok();
             }

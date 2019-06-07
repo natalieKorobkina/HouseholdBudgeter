@@ -41,7 +41,7 @@ namespace HouseholdBudgeter.Controllers
             DbContext.SaveChanges();
 
             var url = Url.Link("DefaultApi", new { Controller = "Category", Id = category.Id });
-            var categoryModel = Mapper.Map<TransactionsViewModel>(category);
+            var categoryModel = Mapper.Map<CategoryViewModel>(category);
 
             return Created(url, categoryModel);
         }
@@ -56,10 +56,10 @@ namespace HouseholdBudgeter.Controllers
             
             Mapper.Map(bindingModel, category);
             category.Updated = DateTime.Now;
-            category.CategoryHouseholdId = id;
+            category.CategoryHouseholdId = householdId;
             DbContext.SaveChanges();
             
-            var categoryModel = Mapper.Map<TransactionsViewModel>(category);
+            var categoryModel = Mapper.Map<CategoryViewModel>(category);
 
             return Ok(categoryModel);
         }
@@ -82,12 +82,39 @@ namespace HouseholdBudgeter.Controllers
         public IHttpActionResult GetCategories(int id)
         {
             var categories = DbContext.Categories.Where(c => c.CategoryHouseholdId == id)
-                .ProjectTo<TransactionsViewModel>().ToList();
+                .ProjectTo<CategoryViewModel>().ToList();
 
-            if (categories.Count() == 0)
-                return BadRequest("There is no category");
+            var categoriesModel = new CategoriesViewModel
+            {
+                Categories = categories,
+                HouseholdName = hBHelper.GetHouseholdById(id).Name,
+                IsOwner = hBHelper.GetHouseholdById(id).OwnerId == User.Identity.GetUserId()
+            };
+
+            return Ok(categoriesModel);
+        }
+
+        [BankAccountCheckParticipant]
+        public IHttpActionResult GetCategoriesBA(int id)
+        {
+            var householdId = DbContext.BankAccounts.FirstOrDefault(b => b.Id == id).HouseholdId;
+            var categories = DbContext.Categories.Where(c => c.CategoryHouseholdId == householdId)
+                .ProjectTo<CategoryViewModel>().ToList();
 
             return Ok(categories);
+        }
+
+        [CategoryCheckOwner]
+        public IHttpActionResult GetCategory(int id)
+        {
+            var category = hBHelper.GetCategoryById(id);
+
+            if (category == null)
+                return BadRequest();
+
+            var categoryModel = Mapper.Map<CategoryViewModel>(category);
+
+            return Ok(categoryModel);
         }
     }
 }

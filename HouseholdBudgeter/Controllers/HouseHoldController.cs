@@ -31,18 +31,9 @@ namespace HouseholdBudgeter.Controllers
         public IHttpActionResult GetAll()
         {
             var userId = User.Identity.GetUserId();
-            var households = DbContext.Households
-                .Where(h => h.Participants.Where(p =>p.Id == userId).Any())
-                .Select(p => new HouseholdInListViewModel
-                {
-                    Id = p.Id,
-                    Created = p.Created,
-                    Updated = p.Updated,
-                    Name = p.Name,
-                    Description = p.Description,
-                    IsOwner = (p.OwnerId == userId)
-                }).ToList();
-           
+            var households = DbContext.Households.Where(h => h.Participants.Where(p =>p.Id == userId).Any())
+                .ProjectTo<TransactionViewModel>(new { currentUserId = User.Identity.GetUserId() }).ToList();
+
             return Ok(households);
         }
 
@@ -139,8 +130,7 @@ namespace HouseholdBudgeter.Controllers
 
             EmailService emailService = new EmailService();
 
-            emailService.Send(email, $"You are invited to participate in household '{householdName}' \n" +
-                $"In order to join this household use {method} and provide householdId {householdId}.", "Invitation");
+            emailService.Send(email, $"You are invited to participate in household '{householdName}' \n", "Invitation");
 
             var invitation = new Invitation();
 
@@ -211,6 +201,27 @@ namespace HouseholdBudgeter.Controllers
             DbContext.SaveChanges();
 
             return Ok();
+        }
+
+        public IHttpActionResult GetHouseholdDetails(int id)
+        {
+            var household = hBHelper.GetHouseholdById(id);
+            var bankAccounts = DbContext.BankAccounts.Where(b => b.HouseholdId == id).ToList();
+            
+            var detailsModel = bankAccounts.Select(p => new HouseholdDetailsViewModel()
+            {
+                BankAccountBalance = p.Balance,
+                BankAccountName = p.Name,
+                Categories = p.Transactions
+                .Where(t => t.Voided == false).GroupBy(c => c.Category.Name).Select(c => new SumCategory
+                {
+                    CategoryName = c.Key,
+                    CategoryBalance = c.Sum(v => v.Ammount)
+                }).ToList()
+
+            }).ToList();
+
+            return Ok(detailsModel);
         }
     }
 }

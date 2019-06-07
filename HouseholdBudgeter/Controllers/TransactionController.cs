@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using HouseholdBudgeter.App_Start;
 using HouseholdBudgeter.Models;
 using HouseholdBudgeter.Models.BindingModels;
 using HouseholdBudgeter.Models.Domain;
@@ -105,15 +106,31 @@ namespace HouseholdBudgeter.Controllers
         }
 
         [TransactionCheckParticipant]
-        public IHttpActionResult GetTransaction(int id)
+        public IHttpActionResult GetTransactions(int id)
         {
             var transactions = hBHelper.GetTransactionOfAccount(id)
-                .ProjectTo<TransactionsViewModel>().ToList();
+                .ProjectTo<TransactionViewModel>(new {currentUserId = User.Identity.GetUserId()}).ToList();
 
-            if (transactions.Count() == 0)
-                return BadRequest("There are no transactions in this bank account");
+            var transactionModel = new TransactionsViewModel
+            {
+                Transactions = transactions,
+                BankAccountName = hBHelper.GetBankAccountById(id).Name
+            };
 
-            return Ok(transactions);
+            return Ok(transactionModel);
+        }
+
+        [TransactionCheckOwner]
+        public IHttpActionResult GetTransaction(int id)
+        {
+            var transaction = hBHelper.GetTransactionById(id);
+
+            if (transaction == null)
+                return BadRequest("Transaction doesn't exist");
+
+            var transactionModel = Mapper.Map<TransactionViewModel>(transaction);
+
+            return Ok(transactionModel);
         }
     }
 }

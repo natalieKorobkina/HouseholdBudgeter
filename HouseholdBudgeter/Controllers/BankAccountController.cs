@@ -6,6 +6,7 @@ using HouseholdBudgeter.Models.Domain;
 using HouseholdBudgeter.Models.Filters;
 using HouseholdBudgeter.Models.Helpers;
 using HouseholdBudgeter.Models.ViewModels;
+using Microsoft.AspNet.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -77,10 +78,27 @@ namespace HouseholdBudgeter.Controllers
             var bankAccounts = DbContext.BankAccounts.Where(b => b.HouseholdId == id)
                 .ProjectTo<BankAccountViewModel>().ToList();
 
-            if (bankAccounts.Count() == 0)
-                return NotFound();
+            var BAsModel = new BankAccountsViewModel
+            {
+                BankAccounts = bankAccounts,
+                HouseholdName = hBHelper.GetHouseholdById(id).Name,
+                IsOwner = hBHelper.GetHouseholdById(id).OwnerId == User.Identity.GetUserId()
+            };
 
-            return Ok(bankAccounts);
+            return Ok(BAsModel);
+        }
+
+        [BankAccountCheckOwner]
+        public IHttpActionResult GetBankAccount(int id)
+        {
+            var bankAccount = hBHelper.GetBankAccountById(id);
+
+            if (bankAccount == null)
+                return BadRequest("Bank Account doesn't exist");
+
+            var BankAccountModel = Mapper.Map<CategoryViewModel>(bankAccount);
+
+            return Ok(BankAccountModel);
         }
 
         [BankAccountCheckOwner]

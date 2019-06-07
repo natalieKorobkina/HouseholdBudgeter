@@ -18,5 +18,7 @@ namespace HouseholdBudgeter.Models.ViewModels
 
         public int BankAccountId { get; set; }
         public int CategoryId { get; set; }
+
+        public bool CanEdit { get; set; }
     }
 }

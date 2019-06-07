@@ -6,7 +6,7 @@ using System.Web;
 
 namespace HouseholdBudgeter.Models.ViewModels
 {
-    public class TransactionsViewModel
+    public class CategoryViewModel
     {
         public int Id { get; set; }
 
