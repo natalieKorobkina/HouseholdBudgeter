@@ -33,7 +33,7 @@ namespace HouseholdBudgeter.Models.Filters
 
                 if (household == null)
                     actionContext.Response = actionContext.Request.CreateErrorResponse(
-                        HttpStatusCode.BadRequest, "Household doens't exist or your have no right to perfom operation");
+                        HttpStatusCode.BadRequest, "Household doens't exist or your have no right to perform operation");
             }
         }
     }

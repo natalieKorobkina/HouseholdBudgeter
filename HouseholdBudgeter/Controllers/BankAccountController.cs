@@ -96,7 +96,7 @@ namespace HouseholdBudgeter.Controllers
             if (bankAccount == null)
                 return BadRequest("Bank Account doesn't exist");
 
-            var BankAccountModel = Mapper.Map<CategoryViewModel>(bankAccount);
+            var BankAccountModel = Mapper.Map<BankAccountViewModel>(bankAccount);
 
             return Ok(BankAccountModel);
         }

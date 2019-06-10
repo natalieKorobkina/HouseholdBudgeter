@@ -31,8 +31,8 @@ namespace HouseholdBudgeter.Controllers
         public IHttpActionResult GetAll()
         {
             var userId = User.Identity.GetUserId();
-            var households = DbContext.Households.Where(h => h.Participants.Where(p =>p.Id == userId).Any())
-                .ProjectTo<TransactionViewModel>(new { currentUserId = User.Identity.GetUserId() }).ToList();
+            var households = DbContext.Households.Where(h => h.Participants.Where(p => p.Id == userId).Any())
+                .ProjectTo<HouseholdInListViewModel>(new { currentUserId = User.Identity.GetUserId() }).ToList();
 
             return Ok(households);
         }

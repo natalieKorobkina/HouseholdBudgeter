@@ -82,7 +82,8 @@ namespace HouseholdBudgeter.Models.Helpers
 
         public decimal CalculateBankAccountBalance(int id)
         {
-            var balance = DbContext.Transactions.Where(t => t.Voided == false).Sum(t => t.Ammount);
+            var transactions = DbContext.Transactions.Where(t => t.Voided == false && t.BankAccountId == id).ToList();
+            var balance = transactions.Any() ? transactions.Sum(t => t.Ammount) : 0;
 
             return balance;
         }
