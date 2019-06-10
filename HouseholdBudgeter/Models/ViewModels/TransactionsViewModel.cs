@@ -8,6 +8,7 @@ namespace HouseholdBudgeter.Models.ViewModels
     public class TransactionsViewModel
     {
         public int BankAccountId { get; set; }
+        public int HouseholdId { get; set; }
         public string BankAccountName { get; set; }
 
         public List<TransactionViewModel> Transactions { get; set; }

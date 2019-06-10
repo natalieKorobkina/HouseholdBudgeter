@@ -63,10 +63,10 @@ namespace HouseholdBudgeter.Controllers
 
             var bankAccount = hBHelper.GetBankAccountById(transaction.BankAccountId);
 
-            bankAccount.Balance = !transaction.Voided 
+            bankAccount.Balance = !transaction.Voided
                 ? bankAccount.Balance - prevAmount + bindingModel.Ammount : bankAccount.Balance;
             DbContext.SaveChanges();
-            
+
             var transactionModel = Mapper.Map<TransactionViewModel>(transaction);
 
             return Ok(transactionModel);
@@ -76,7 +76,7 @@ namespace HouseholdBudgeter.Controllers
         public IHttpActionResult PostVoidTransaction(int id)
         {
             var transaction = hBHelper.GetTransactionById(id);
-            
+
             if (transaction.Voided == false)
             {
                 transaction.Voided = true;
@@ -84,7 +84,7 @@ namespace HouseholdBudgeter.Controllers
                 transaction.Updated = DateTime.Now;
                 DbContext.SaveChanges();
             }
-            
+
             var transactionModel = Mapper.Map<TransactionViewModel>(transaction);
 
             return Ok(transactionModel);
@@ -94,11 +94,11 @@ namespace HouseholdBudgeter.Controllers
         public IHttpActionResult DeleteTransaction(int id)
         {
             var transaction = hBHelper.GetTransactionById(id);
-            
+
             DbContext.Transactions.Remove(transaction);
 
             if (!transaction.Voided)
-            hBHelper.GetBankAccountById(transaction.BankAccountId).Balance -= transaction.Ammount;
+                hBHelper.GetBankAccountById(transaction.BankAccountId).Balance -= transaction.Ammount;
 
             DbContext.SaveChanges();
 
@@ -109,12 +109,13 @@ namespace HouseholdBudgeter.Controllers
         public IHttpActionResult GetTransactions(int id)
         {
             var transactions = hBHelper.GetTransactionOfAccount(id)
-                .ProjectTo<TransactionViewModel>(new {currentUserId = User.Identity.GetUserId()}).ToList();
+                .ProjectTo<TransactionViewModel>(new { currentUserId = User.Identity.GetUserId() }).ToList();
 
             var transactionModel = new TransactionsViewModel
             {
                 Transactions = transactions,
-                BankAccountName = hBHelper.GetBankAccountById(id).Name
+                BankAccountName = hBHelper.GetBankAccountById(id).Name,
+                HouseholdId = hBHelper.GetBankAccountById(id).HouseholdId
             };
 
             return Ok(transactionModel);
