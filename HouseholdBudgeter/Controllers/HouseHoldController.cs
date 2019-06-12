@@ -213,9 +213,9 @@ namespace HouseholdBudgeter.Controllers
                 BankAccountBalance = p.Balance,
                 BankAccountName = p.Name,
                 Categories = p.Transactions
-                .Where(t => t.Voided == false).GroupBy(c => c.Category.Name).Select(c => new SumCategory
+                .Where(t => t.Voided == false).GroupBy(c => c.Category.Id).Select(c => new SumCategory
                 {
-                    CategoryName = c.Key,
+                    CategoryName = hBHelper.GetCategoryById(c.Key).Name,
                     CategoryBalance = c.Sum(v => v.Ammount)
                 }).ToList()
 

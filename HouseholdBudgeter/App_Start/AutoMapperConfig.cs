@@ -31,8 +31,7 @@ namespace HouseholdBudgeter.App_Start
                 cfg.CreateMap<Household, HouseholdBindingModel>().ReverseMap();
                 cfg.CreateMap<Household, HouseholdViewModel>().ReverseMap();
                 cfg.CreateMap<Household, HouseholdInListViewModel>()
-                .ForMember(dest => dest.IsOwner,
-                opt => opt.MapFrom(src => src.OwnerId == currentUserId)); 
+                .ForMember(dest => dest.IsOwner, opt => opt.MapFrom(src => src.OwnerId == currentUserId)); 
                 cfg.CreateMap<Invitation, InvitationViewModel>().ReverseMap();
                 cfg.CreateMap<Category, CategoryBindingModel>().ReverseMap();
                 cfg.CreateMap<Category, CategoryViewModel>().ReverseMap();
@@ -40,9 +39,9 @@ namespace HouseholdBudgeter.App_Start
                 cfg.CreateMap<BankAccount, BankAccountBindingModel>().ReverseMap();
                 cfg.CreateMap<BankAccount, BankAccountViewModel>().ReverseMap();
                 cfg.CreateMap<Transaction, TransactionViewModel>()
-                .ForMember(dest => dest.CanEdit,
-                opt => opt.MapFrom(src => src.BankAccount.Household.OwnerId == currentUserId
-                || src.OwnerId == currentUserId));
+                .ForMember(dest => dest.CanEdit, opt => opt.MapFrom(src => src.BankAccount.Household.OwnerId == currentUserId
+                || src.OwnerId == currentUserId))
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.Name));
                 cfg.CreateMap<Transaction, TransactionBindingModel>().ReverseMap();
             });
         }
