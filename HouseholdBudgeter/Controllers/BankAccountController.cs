@@ -29,6 +29,7 @@ namespace HouseholdBudgeter.Controllers
         }
 
         [HouseholdCheckOwner]
+        [Authorize]
         public IHttpActionResult PostBankAccount(int id, BankAccountBindingModel bindingModel)
         {
             if (bindingModel == null)
